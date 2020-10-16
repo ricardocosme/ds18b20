@@ -1,37 +1,46 @@
 #pragma once
 
-#include "ds18b20/detail/reset.hpp"
-#include "ds18b20/detail/write.hpp"
+#include "ds18b20/commands/copy_scratchpad.hpp"
+#include "ds18b20/commands/write_scratchpad.hpp"
+#include "ds18b20/detail/addr_device.hpp"
 
 namespace ds18b20::resolution {
 
-struct _9bits_t { constexpr static uint8_t value = 9; };
-constexpr inline _9bits_t _9bits;
+/**
+  Defines the resolution of the sensoor
 
-struct _10bits_t { constexpr static uint8_t value = 10; };
-constexpr inline _10bits_t _10bits;
+  This function defines the resolution of the themometer at the
+  hardware level. By default the sensor has a 12 bits resolution. The
+  resolution can be of 9, 10, 11 or 12 bits. The best approach is to
+  choose one and define it using this function only one time saving
+  the configuration in the EEPROM.
 
-struct _11bits_t { constexpr static uint8_t value = 11; };
-constexpr inline _11bits_t _11bits;
+  | Resolution | Max. conversion time | Decimal increment |
+  | 9 bits     | 93.75ms              |               0.5 |
+  | 10 bits    | 187.5ms              |             0.250 |
+  | 11 bits    | 375ms                |             0.125 |
+  | 12 bits    | 750ms                |            0.0625 |
 
-struct _12bits_t { constexpr static uint8_t value = 12; };
-constexpr inline _12bits_t _12bits;
-
+*/
+template<typename Thermo>
+inline void set(bool save_to_eeprom = true) {
+    detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(Thermo::Pin);
+    uint8_t resolution;
+    if constexpr(Thermo::resolution == 9)
+        resolution = 0x1F;
+    else if(Thermo::resolution == 10)
+        resolution = 0x3F;
+    else if(Thermo::resolution == 11)
+        resolution = 0x5F;
+    else if(Thermo::resolution == 12)
+        resolution = 0x7F;
+    else static_assert("Resolution is out of the range [9, 12]bits");
+    commands::write_scratchpad<Thermo::internal_pullup>(Thermo::Pin, resolution);
+    
+    if(save_to_eeprom) {
+        detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(Thermo::Pin);
+        commands::copy_scratchpad<Thermo::internal_pullup>(Thermo::Pin);
+    }
 }
 
-#include "ds18b20/detail/resolution.hpp"
-
-namespace ds18b20::resolution {
-
-template<typename Thermo, typename Resolution>
-inline void set(const Thermo& t, Resolution res) {
-    constexpr auto Pin = Thermo::pin;
-    detail::reset(Pin);
-    //TODO: I need to set the resolution without loose the values
-    //related to the alarm.
-    detail::write(Pin, 0x4E /*Write Scratchpad*/);
-    detail::write(Pin, 0); // Th
-    detail::write(Pin, 0); // Tl
-    detail::set_resolution(Pin, res);
-}
 }

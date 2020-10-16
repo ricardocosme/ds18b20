@@ -1,8 +1,16 @@
 #pragma once
 
-#include <avr/io.h>
+#include <stdint.h>
 
 namespace ds18b20 {
+
+struct SkipRom {};
+
+template<uint8_t B0, uint8_t B1, uint8_t B2, uint8_t B3,
+         uint8_t B4, uint8_t B5, uint8_t B6, uint8_t B7>
+struct Rom {
+    constexpr static uint8_t data[] = {B0,B1,B2,B3,B4,B5,B6,B7};
+};
 
 class rom {
     uint8_t _data[8];
@@ -46,12 +54,6 @@ public:
     
     const uint8_t* data() const noexcept
     { return _data; }
-};
-
-template<uint8_t B0, uint8_t B1, uint8_t B2, uint8_t B3,
-         uint8_t B4, uint8_t B5, uint8_t B6, uint8_t B7>
-struct Rom {
-    constexpr static uint8_t data[] = {B0,B1,B2,B3,B4,B5,B6,B7};
 };
 
 }

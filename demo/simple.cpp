@@ -1,12 +1,7 @@
-#include <ds18b20/ds18b20.hpp>
-#include <att85/ssd1306/display.hpp>
-#include <att85/ssd1306/font/16x32/chars.hpp>
-#include <att85/ssd1306/font/8x8/chars.hpp>
+#include <ds18b20.hpp>
 
-using namespace att85::ssd1306;
-using namespace ds18b20;
-
-/* This demo shows how to read the temperature with a simple setup of
+/** 
+   This demo shows how to read the temperature with a simple setup of
    ds18b20 sensor.
 
    It's considered that there is only one device using the bus and the
@@ -15,15 +10,17 @@ using namespace ds18b20;
    value.
 */
 
+void do_something(uint8_t){}
+
 int main() {
-    display_128x64<> disp;
-    disp.clear();
-    disp.on();
-    
-    thermo<PB3> termo;
-    
+    using thermo = ds18b20::sensor<PB3>;
+
+    auto co_temp = thermo::read();
     while(true) {
-        _delay_ms(1000);
-        disp.out<font::_16x32>(0, 0, termo.read());
+        if(co_temp()) {
+            if(co_temp.has_value())
+                do_something(co_temp.value());
+            co_temp = thermo::read();
+        }
     }
 }

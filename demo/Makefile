@@ -7,9 +7,9 @@ CC=avr-gcc
 OBJCOPY=avr-objcopy
 OBJDUMP=avr-objdump
 INCLUDE=-I/home/rcosme/build/att85/include -I../include -I.
-CXXFLAGS=-std=$(STD_CXX) -g -mmcu=$(MCU_TARGET) -Wall $(OPTIMIZE) -DF_CPU=1000000 -Wno-volatile $(INCLUDE)
+CXXFLAGS=-std=$(STD_CXX) -g -mmcu=$(MCU_TARGET) -Wall $(OPTIMIZE) -DF_CPU=1000000 $(INCLUDE)
 
-demos = read_rom read_temp simple
+demos = sync_wait read_rom simple set_resolution
 
 all: $(demos:%=%.elf) $(demos:%=%.lst) $(demos:%=%.s)
 

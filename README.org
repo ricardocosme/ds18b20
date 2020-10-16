@@ -1,0 +1,47 @@
+C++20 driver to use the digital thermometer [[https://datasheets.maximintegrated.com/en/ds/DS18B20.pdf][ds18b20]] with AVR. The strong points of this work are the usage of [[#resumable-functions][coroutines]] to read the temperature and the [[#policies][compile-time operations to optimize the code size]].
+
+** Demo
+This example illustrates the reading of the temperature using an asynchronous approach that uses coroutines.
+#+BEGIN_SRC C++
+#include <ds18b20.hpp>
+
+int main() {
+    using thermo = ds18b20::sensor<PB3>;
+
+    auto co_temp = thermo::read();
+    while(true) {
+        if(co_temp()) {
+            if(co_temp.has_value())
+                do_something(co_temp.value());
+            co_temp = thermo::read();
+        }
+    }
+}
+#+END_SRC
+
+** Requirements
+1. avr-gcc 10.2
+2. c++20
+3. avrlibc
+
+** Usage
+This is a header only library. The only thing that should be done is to include the header ~ds18b20.hpp~.
+
+** Reading the temperature without blocking
+:PROPERTIES:
+:CUSTOM_ID: resumable-functions
+:END:
+~sensor::read()~ is a function that can be suspended by itself and resumed by the caller. In this case this resumable function is considered a stackless coroutine because it has the minimal state possible to allow suspension and resumption. This coroutine reuses the byte that represents the whole of the temperature value to store its state of execution. /Unfortunately, it wasn't possible to use C++20 coroutines here because I didn't observe the gcc 10.2.0 eliding the allocation to the coroutine frame./
+
+** Policies
+:PROPERTIES:
+:CUSTOM_ID: policies
+:END:
+*** Temperature value with decimals
+The policy ~WithDecimal~ enables the driver to read the decimal part of the temperature. It's possible to save some instructions if this policy isn't enabled.
+
+*** Support to internal pullup resistor
+The policy ~InternalPullup~ allows the usage of the internal pullup resistor from the MCU I/O Port. This policy can be enabled with a circuit which uses an external pullup resistor. When enabled this policy add some instructions to allow the usage of the internal pullup resistor of the bus pin.
+
+*** Resolution of 9, 10, 11 or 12bits
+This policy defines the resolution used to convert the temperature. The default value is 12bits, which is the default value of the sensor. Low resolutions are faster than high resolution in the conversion time. 
