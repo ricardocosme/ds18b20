@@ -6,10 +6,10 @@ CXX=avr-g++
 CC=avr-gcc
 OBJCOPY=avr-objcopy
 OBJDUMP=avr-objdump
-INCLUDE=-I/home/rcosme/build/att85/include -I../include -I.
+INCLUDE=-I../include -I.
 CXXFLAGS=-std=$(STD_CXX) -g -mmcu=$(MCU_TARGET) -Wall $(OPTIMIZE) -DF_CPU=1000000 $(INCLUDE)
 
-demos = sync_wait read_rom simple set_resolution
+demos = simple single multi set_resolution read_rom sync_read with_decimal
 
 all: $(demos:%=%.elf) $(demos:%=%.lst) $(demos:%=%.s)
 

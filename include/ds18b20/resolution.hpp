@@ -20,7 +20,6 @@ namespace ds18b20::resolution {
   | 10 bits    | 187.5ms              |             0.250 |
   | 11 bits    | 375ms                |             0.125 |
   | 12 bits    | 750ms                |            0.0625 |
-
 */
 template<typename Thermo>
 inline void set(bool save_to_eeprom = true) {
@@ -42,5 +41,9 @@ inline void set(bool save_to_eeprom = true) {
         commands::copy_scratchpad<Thermo::internal_pullup>(Thermo::Pin);
     }
 }
+
+template<typename Thermo>
+inline void set(Thermo, bool save_to_eeprom = true)
+{ set<Thermo>(save_to_eeprom); }
 
 }

@@ -2,4 +2,5 @@
 
 #include "ds18b20/resolution.hpp"
 #include "ds18b20/sensor.hpp"
-#include "ds18b20/sync_wait.hpp"
+#include "ds18b20/sync_read.hpp"
+

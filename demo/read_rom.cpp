@@ -1,8 +1,13 @@
 #include <ds18b20/sensor.hpp>
 
-/** This demo shows how to read the Rom value of the chip. */
+/** This demo shows how to read the Rom value of the chip. 
+    
+    It's considered that there is only one device connected to the
+    bus.
+*/
 
-void do_something_with_each_byte(uint8_t){}
+void do_something_with_each_byte(uint8_t b){
+}
 
 int main() {
     using thermo = ds18b20::sensor<PB3>;

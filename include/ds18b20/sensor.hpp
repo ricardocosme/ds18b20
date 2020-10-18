@@ -1,16 +1,17 @@
 #pragma once
 
 #include "ds18b20/commands/conversion.hpp"
+#include "ds18b20/commands/read_rom.hpp"
+#include "ds18b20/commands/read_scratchpad.hpp"
+#include "ds18b20/detail/addr_device.hpp"
 #include "ds18b20/detail/policies.hpp"
+#include "ds18b20/detail/read_scratchpad.hpp"
+#include "ds18b20/lazy_temperature.hpp"
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 #include "ds18b20/rom.hpp"
-#include "ds18b20/temperature.hpp"
-// #include "ds18b20/commands/read_rom.hpp"
-
 #include <ds18b20/type_traits.hpp>
 #include <stdint.h>
-
 
 namespace ds18b20 {
 
@@ -77,12 +78,14 @@ namespace ds18b20 {
        Datasheet:
        https://datasheets.maximintegrated.com/en/ds/DS18B20.pdf
  */
+
 template<uint8_t pin,
          typename rom_ = SkipRom,
          typename... Policies>
 class sensor {
     using policies = decltype(detail::policies(declval<Policies>()...));
     static constexpr bool has_rom = !is_same<rom_, SkipRom>::value;
+    uint8_t _state{0};
 public:
     
     /** number of the port pin that has the bus line */
@@ -100,56 +103,108 @@ public:
     /** If there is support to internal pullup resistors */
     static constexpr bool internal_pullup = detail::internal_pullup<policies>();
 
-    /** The return type of the method read(). It can be a temperature
+    /** The return type of the method read(). It can be a lazy_temperature
         if only the whole number of the temperature is desired or a
-        temperature_with_decimal otherwise. */
+        lazy_temperature_with_decimal otherwise. */
     using value_type = 
         conditional_t<
             with_decimal,
-            temperature_with_decimal<
+            lazy_temperature_with_decimal<
                 conditional_t<
                     resolution >= 11,
-                    uint16_t,
-                    uint8_t
-                >,
-                pin, Rom, internal_pullup, resolution
+                    FP<uint16_t>,
+                    FP<uint8_t>
+                >
              >,
-        temperature<pin, Rom, internal_pullup, resolution>
+        lazy_temperature<uint8_t>
         >;
 
     /** Returns the Rom code of the sensor
 
-        If this abstraction was intantiated with SkipRom, then the Rom
-        code is read through a command to be sent to the device,
-        otherwise, if it was instantiated with a Rom address, then the
-        address is returned. Take a look at 'rom.hpp' to see the
+        If sensor was instantiated with SkipRom, then the Rom code is
+        read through a command to be sent to the device, otherwise, if
+        it was instantiated with a Rom address, then the address is
+        returned. Take a look at 'rom.hpp' to know more about the
         return type.
      */
     static ::ds18b20::rom rom() noexcept {
-        if constexpr(has_rom) {
-            return {Rom::data};
-        } else {
-            onewire::init<internal_pullup>(pin);
-            onewire::write<internal_pullup>(pin, 0x33); //Read ROM command
-            ::ds18b20::rom ret;
-            for(uint8_t i{}; i < 8; ++i)
-                ret[i] = onewire::read<internal_pullup>(pin);
-            return ret;
-            // return commands::read_rom<internal_pullup>(pin);
-        }
+        if constexpr(has_rom) return {Rom::data};
+        else return commands::read_rom<internal_pullup>(pin);
     }
 
-    /** Get the temperature
+    /** Asynchronous function to read the temperature
 
-        This returns a resumable function that initiates a temperature
-        conversion and suspends its execution. Take a look at
-        'temperature.hpp' to see how to use the returned object.
-    */
-    static value_type read() noexcept {
-        detail::addr_device<internal_pullup, Rom>(pin);
-        commands::conversion<internal_pullup>(pin);
+        This is a stackless coroutine that returns a lazy temperature
+        value. 
+
+        The first step is to convert the temperature, the second is to
+        check if the temperature value is available, and the third and
+        the last one is to read the temperature value from the
+        memory(scratchpad) of the sensor.
+
+        The conversion process can take a while and if this function
+        is resumed while this processing is happening, the function is
+        suspended and am unfinished lazy value is returned to inform
+        that the coroutine is yet running, which means that
+        'lazy_value.done() == false'. When the function is resumed
+        after the conversion is over, a lazy value is resturned with
+        the temperature or an error.
+        
+        An example using this function inside an event loop:
+
+        while(true) //event loop
+          if(auto temp = thermo.read()) { //[1]
+            if(temp.has_value()) //[2]
+              do_something(temp.value()); //[3]
+          }
+       
+        Explanation of the above example:
+   
+        [1] The first call to 'thermo.read()' starts the conversion
+        process. When this function is resumed in the next iteration
+        of the event loop, which means another call to
+        'thermo.read()', the function can returns a lazy value
+        representing an unfinished execution, which means that 'temp
+        == false', or, it can rerturns a lazy value with the
+        temperature value or an error.
+       
+        [2] When the coroutine is over, the lazy value that is
+        returned may contain a valid temperature value or an error.
+
+        [3] The temperature value is safely obtained from the lazy
+        temperature value.
+     */
+    value_type read() noexcept {
+        switch(_state) {
+        case 0: {
+            detail::addr_device<internal_pullup, Rom>(pin);
+            commands::conversion<internal_pullup>(pin);
+            _state = 1;
+            return {};
+        }
+        case 1: {
+            while(!onewire::read_bit<internal_pullup>(pin)) {
+                _state = 2;
+                return {};
+            case 2: { }
+            }
+        }
+        default: {
+            detail::addr_device<internal_pullup, Rom>(pin);
+            commands::read_scratchpad<internal_pullup>(pin);
+
+            _state = 0;
+
+            if constexpr(with_decimal)
+                return detail::read_scratchpad_with_decimal<
+                    internal_pullup, resolution, typename value_type::value_type>(pin);
+            else
+                return {detail::read_scratchpad<internal_pullup>(pin)};
+        }
+        }
         return {};
     }
 };
 
 }
+

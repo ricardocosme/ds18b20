@@ -1,23 +1,121 @@
 C++20 driver to use the digital thermometer [[https://datasheets.maximintegrated.com/en/ds/DS18B20.pdf][ds18b20]] with AVR. The strong points of this work are the usage of [[#resumable-functions][coroutines]] to read the temperature and the [[#policies][compile-time operations to optimize the code size]].
 
-** Demo
-This example illustrates the reading of the temperature using an asynchronous approach that uses coroutines.
+/Note: if you're willing to use this library, be aware that it is a work under heavily development/
+
+** Simple [async]
+This example illustrates the reading of the temperature using the asynchronous approach. It's considered that there is only one device using the bus, it has the default resolution of 12 bits, and there is only interest in reading the whole part of the temperature value.
 #+BEGIN_SRC C++
 #include <ds18b20.hpp>
 
-int main() {
-    using thermo = ds18b20::sensor<PB3>;
+void do_something(uint8_t temp){}
 
-    auto co_temp = thermo::read();
-    while(true) {
-        if(co_temp()) {
-            if(co_temp.has_value())
-                do_something(co_temp.value());
-            co_temp = thermo::read();
+int main() {
+    ds18b20::sensor<PB3> thermo;
+
+    while(true)
+        if(auto temp = thermo.read()) {
+            if(temp.has_value())
+                do_something(temp.value());
         }
+}
+#+END_SRC
+~332~ bytes of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+
+~read()~ is a coroutine that returns a lazy temperature value(~temp~) which has a ~done()~ method that returns ~false~ if the coroutine is running and ~true~ is it is completed. 
+
+** Simple [sync]
+If the asynchronous approach is not desirable, the temperature value can be obtained through a synchronous read operation(~sync_read()~). The caller blocks until the temperature value or an error are available.
+#+BEGIN_SRC C++
+#include <ds18b20.hpp>
+
+void do_something(uint8_t temp){}
+
+int main() {
+    ds18b20::sensor<PB3> thermo;
+
+    while(true)
+        if(auto temp = sync_read(thermo))
+            do_something(temp.value());
+}
+#+END_SRC
+~368~ bytes of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+
+** Multiple devices
+#+BEGIN_SRC C++
+#include <ds18b20.hpp>
+
+void do_something_inside(uint8_t temp){}
+void do_something_outside(uint8_t temp){}
+
+int main() {
+    using namespace ds18b20;
+
+    sensor<PB3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> inside;
+    sensor<PB3, Rom<40, 198, 8, 141, 5, 0, 0, 124>> outside;
+
+    while(true) {
+        if(auto temp = inside.read())
+            if(temp.has_value())
+                do_something_inside(temp.value());
+        if(auto temp = outside.read())
+            if(temp.has_value())
+                do_something_outside(temp.value());
     }
 }
 #+END_SRC
+~636~ bytes of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+
+** Temperature value with fractions
+The policy ~WithDecimal~ enables the driver to handle the decimal part of a temperature value. The resolution of the device determines how the driver should read and store the fraction. Below, the example uses the default policy ~resolution::_12bits~, which means that type ~Decimal~ is equal to ~uint16_t~ and the fraction has a resolution of ~0.0625~.
+#+BEGIN_SRC C++
+template<typename Decimal>
+void do_something(uint8_t whole, Decimal decimal){}
+
+int main() {
+    using namespace ds18b20;
+
+    sensor<PB3, SkipRom, WithDecimal> thermo;
+
+    while(true)
+        if(auto temp = thermo.read()) {
+            if(temp.has_value())
+                do_something(temp.value(), temp.decimal());
+        }
+}
+#+END_SRC
+~578~ bytes of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+
+** Reading the Rom code
+#+BEGIN_SRC C++
+void do_something_with_each_byte(uint8_t b){
+}
+
+int main() {
+    using thermo = ds18b20::sensor<PB3>;
+    auto rom = thermo::rom();
+    for(auto b : rom)
+        do_something_with_each_byte(b);
+}
+#+END_SRC
+~162~ bytes of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+
+** Features** 
+1. Asynchronous(coroutine) and synchronous ways to read the temperature.
+2. Support at compile-time to 9, 10, 11 e 12 bits of resolution.
+3. Optional support at compile-time to handle temperature values with fractions.
+4. Optional support at compile-time to allow the usage of the internal pullup resistor of the MCU I/O pin that represents the bus(DQ port).
+5. Setup of the resolution as a one shot call that saves the configuration in the EEPROM.
+6. Address of any device in the bus using the Skip Rom command.
+7. Address of specifics devices in the bus using the Rom code.
+8. Reading of the Rom code.
+9. Support to multiple devices in the same bus(DQ port).
+
+** Features that aren't supported
+1. Negative temperatures
+2. Search Rom
+3. Alarm 
+4. Parasite power mode
+
 
 ** Requirements
 1. avr-gcc 10.2
@@ -27,21 +125,3 @@ int main() {
 ** Usage
 This is a header only library. The only thing that should be done is to include the header ~ds18b20.hpp~.
 
-** Reading the temperature without blocking
-:PROPERTIES:
-:CUSTOM_ID: resumable-functions
-:END:
-~sensor::read()~ is a function that can be suspended by itself and resumed by the caller. In this case this resumable function is considered a stackless coroutine because it has the minimal state possible to allow suspension and resumption. This coroutine reuses the byte that represents the whole of the temperature value to store its state of execution. /Unfortunately, it wasn't possible to use C++20 coroutines here because I didn't observe the gcc 10.2.0 eliding the allocation to the coroutine frame./
-
-** Policies
-:PROPERTIES:
-:CUSTOM_ID: policies
-:END:
-*** Temperature value with decimals
-The policy ~WithDecimal~ enables the driver to read the decimal part of the temperature. It's possible to save some instructions if this policy isn't enabled.
-
-*** Support to internal pullup resistor
-The policy ~InternalPullup~ allows the usage of the internal pullup resistor from the MCU I/O Port. This policy can be enabled with a circuit which uses an external pullup resistor. When enabled this policy add some instructions to allow the usage of the internal pullup resistor of the bus pin.
-
-*** Resolution of 9, 10, 11 or 12bits
-This policy defines the resolution used to convert the temperature. The default value is 12bits, which is the default value of the sensor. Low resolutions are faster than high resolution in the conversion time. 
