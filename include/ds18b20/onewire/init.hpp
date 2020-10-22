@@ -4,7 +4,7 @@
 #include <util/atomic.h>
 #include <util/delay.h>
 
-#include "ds18b20/avr/bus/define.hpp"
+#include "ds18b20/avr/gpio.hpp"
 
 namespace ds18b20::onewire {
 
@@ -58,4 +58,3 @@ inline void init(uint8_t pin) noexcept {
 
 }//namespace ds18b20::onewire
 
-#include "ds18b20/avr/bus/undef.hpp"

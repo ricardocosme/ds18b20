@@ -3,7 +3,7 @@
 #include <util/atomic.h>
 #include <util/delay.h>
 
-#include "ds18b20/avr/bus/define.hpp"
+#include "ds18b20/avr/gpio.hpp"
 
 namespace ds18b20::onewire {
 
@@ -21,7 +21,7 @@ inline bool read_bit(uint8_t pin) noexcept {
 }
 
 /**
-  Read 1 byte 
+  Read 1 byte (LSB first)
   
   InternalPullup: 'true' activates the support to the usage of the
                    internal pullup resistor of the MCU.
@@ -38,5 +38,3 @@ inline uint8_t read(uint8_t pin) noexcept {
 }
 
 }//namespace ds18b20::onewire
-
-#include "ds18b20/avr/bus/undef.hpp"

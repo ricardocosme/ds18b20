@@ -3,7 +3,7 @@
 #include <util/atomic.h>
 #include <util/delay.h>
 
-#include "ds18b20/avr/bus/define.hpp"
+#include "ds18b20/avr/gpio.hpp"
 
 namespace ds18b20::onewire {
 
@@ -27,7 +27,7 @@ inline void write_bit(uint8_t pin, bool one) noexcept {
 }
 
 /**
-  Write 1 byte 
+  Write 1 byte (LSB first)
   
   InternalPullup: 'true' activates the support to the usage of the
                    internal pullup resistor of the MCU.
@@ -44,4 +44,3 @@ inline void write(uint8_t pin, uint8_t byte) noexcept {
 
 }//namespace ds18b20::onewire
 
-#include "ds18b20/avr/bus/undef.hpp"
