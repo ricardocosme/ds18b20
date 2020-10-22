@@ -19,7 +19,7 @@ int main() {
         }
 }
 #+END_SRC
-~332 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+~326 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
 
 ~read()~ is a coroutine that returns a lazy temperature value(~temp~) which has a ~done()~ method that returns ~false~ if the coroutine is running and ~true~ is it is completed. 
 
@@ -38,7 +38,7 @@ int main() {
             do_something(temp.value());
 }
 #+END_SRC
-~368 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+~364 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
 
 ** Multiple devices
 #+BEGIN_SRC C++
@@ -63,7 +63,7 @@ int main() {
     }
 }
 #+END_SRC
-~636 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+~612 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
 
 ** Temperature value with fractions
 The policy ~WithDecimal~ enables the driver to handle the decimal part of a temperature value. The resolution of the device determines how the driver should read and store the fraction. Below, the example uses the default policy ~resolution::_12bits~, which means that type ~Decimal~ is equal to ~uint16_t~ and the fraction has a resolution of ~0.0625~.
@@ -83,7 +83,7 @@ int main() {
         }
 }
 #+END_SRC
-~578 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+~580 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
 
 ** Reading the Rom code
 #+BEGIN_SRC C++
@@ -97,7 +97,7 @@ int main() {
         do_something_with_each_byte(b);
 }
 #+END_SRC
-~162 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+~158 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
 
 ** Features
 1. Asynchronous(coroutine) and synchronous ways to read the temperature.

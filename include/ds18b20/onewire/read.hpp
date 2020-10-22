@@ -31,7 +31,7 @@ template<bool InternalPullup>
 inline uint8_t read(uint8_t pin) noexcept {
     uint8_t byte{};
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        for(uint8_t mask{1}; mask; mask <<= 1) 
+        for(uint8_t i{8}, mask{0x01}; i > 0; --i, mask <<= 1)
             if(read_bit<InternalPullup>(pin)) byte |= mask;
     }
     return byte;
