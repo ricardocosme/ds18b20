@@ -116,11 +116,9 @@ int main() {
 3. Alarm 
 4. Parasite power mode
 
-
 ** Requirements
-1. avr-gcc 10.2
-2. c++20
-3. avrlibc
+1. ~avr-gcc 10.2~ with support to C++20(~-std=c++20~)
+2. ~avr-libc 2.0.0~
 
 ** Usage
 This is a header only library. The only thing that should be done is to include the header ~ds18b20.hpp~.
