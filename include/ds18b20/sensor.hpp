@@ -10,7 +10,7 @@
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 #include "ds18b20/rom.hpp"
-#include <ds18b20/type_traits.hpp>
+#include <type_traits>
 #include <stdint.h>
 
 namespace ds18b20 {
@@ -83,8 +83,8 @@ template<uint8_t pin,
          typename rom_ = SkipRom,
          typename... Policies>
 class sensor {
-    using policies = decltype(detail::policies(declval<Policies>()...));
-    static constexpr bool has_rom = !is_same<rom_, SkipRom>::value;
+    using policies = decltype(detail::policies(std::declval<Policies>()...));
+    static constexpr bool has_rom = !std::is_same<rom_, SkipRom>::value;
     uint8_t _state{0};
 public:
     
@@ -107,10 +107,10 @@ public:
         if only the whole number of the temperature is desired or a
         lazy_temperature_with_decimal otherwise. */
     using value_type = 
-        conditional_t<
+        std::conditional_t<
             with_decimal,
             lazy_temperature_with_decimal<
-                conditional_t<
+                std::conditional_t<
                     resolution >= 11,
                     FP<uint16_t>,
                     FP<uint8_t>
