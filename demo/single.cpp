@@ -16,7 +16,7 @@ int main() {
     sensor<avr::io::Pb3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> thermo{avr::io::pb3};
 
     while(true)
-        if(auto temp = thermo.read()) {
+        if(auto temp = thermo.async_read()) {
             if(temp.has_value())
                 do_something(temp.value());
         }

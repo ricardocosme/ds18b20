@@ -2,7 +2,7 @@
 
 /** 
    This demo shows how to read the temperature using a synchronous
-   approach to call read().
+   approach calling the method read().
 
    It's considered that there is only one device using the bus, it has
    the default resolution of 12bits and the user is interested in
@@ -15,7 +15,7 @@ int main() {
     ds18b20::sensor<avr::io::Pb3> thermo{avr::io::pb3};
 
     while(true)
-        if(auto temp = ds18b20::sync_read(thermo))
+        if(auto temp = thermo.read())
             do_something(temp.value());
 }
 

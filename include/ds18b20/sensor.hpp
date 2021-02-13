@@ -6,6 +6,7 @@
 #include "ds18b20/detail/addr_device.hpp"
 #include "ds18b20/detail/policies.hpp"
 #include "ds18b20/detail/read_scratchpad.hpp"
+#include "ds18b20/detail/read.hpp"
 #include "ds18b20/lazy_temperature.hpp"
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
@@ -178,11 +179,10 @@ public:
         [3] The temperature value is safely obtained from the lazy
         temperature value.
      */
-    value_type read() noexcept {
+    value_type async_read() noexcept {
         switch(_state) {
         case 0: {
-            detail::addr_device<internal_pullup, Rom>(pin);
-            commands::conversion<internal_pullup>(pin);
+            detail::start_conversion<internal_pullup, Rom>(pin);
             _state = 1;
             return {};
         }
@@ -194,19 +194,17 @@ public:
             }
         }
         default: {
-            detail::addr_device<internal_pullup, Rom>(pin);
-            commands::read_scratchpad<internal_pullup>(pin);
-
             _state = 0;
-
-            if constexpr(with_decimal)
-                return detail::read_scratchpad_with_decimal<
-                    internal_pullup, resolution, typename value_type::value_type>(pin);
-            else
-                return {detail::read_scratchpad<internal_pullup>(pin)};
+            return detail::read_scratchpad<value_type>(*this);
         }
         }
         return {};
+    }
+    
+    optional_temperature read() noexcept {
+        detail::start_conversion<internal_pullup, Rom>(pin);
+        while(!onewire::read_bit<internal_pullup>(pin));
+        return detail::read_scratchpad<optional_temperature>(*this);
     }
 };
 

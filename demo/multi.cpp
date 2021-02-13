@@ -17,10 +17,10 @@ int main() {
     sensor<avr::io::Pb3, Rom<40, 198, 8, 141, 5, 0, 0, 124>> outside{avr::io::pb3};
 
     while(true) {
-        if(auto temp = inside.read())
+        if(auto temp = inside.async_read())
             if(temp.has_value())
                 do_something_inside(temp.value());
-        if(auto temp = outside.read())
+        if(auto temp = outside.async_read())
             if(temp.has_value())
                 do_something_outside(temp.value());
     }

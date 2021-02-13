@@ -16,9 +16,9 @@ int main() {
     using namespace ds18b20;
     
     sensor<avr::io::Pb3, SkipRom, WithDecimal> thermo{avr::io::pb3};
-
+    
     while(true)
-        if(auto temp = thermo.read()) {
+        if(auto temp = thermo.async_read()) {
             if(temp.has_value())
                 do_something(temp.value(), temp.decimal());
         }
