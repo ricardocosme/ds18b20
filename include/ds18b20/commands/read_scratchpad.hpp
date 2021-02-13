@@ -4,8 +4,8 @@
 
 namespace ds18b20::commands {
 
-template<bool InternalPullup>
-inline void read_scratchpad(uint8_t pin) noexcept
+template<bool InternalPullup, typename Pin>
+inline void read_scratchpad(Pin pin) noexcept
 {
     onewire::write<InternalPullup>(pin, 0xBE /*Read from scratchpad*/);
 }

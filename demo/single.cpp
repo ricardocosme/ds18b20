@@ -13,7 +13,7 @@ void do_something(uint8_t temp){
 int main() {
     using namespace ds18b20;
     
-    sensor<PB3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> thermo;
+    sensor<avr::io::Pb3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> thermo{avr::io::pb3};
 
     while(true)
         if(auto temp = thermo.read()) {

@@ -9,16 +9,13 @@
    reading only the whole part of the temperature value.
 */
 
-// display_128x64<> disp;
-void do_something(uint8_t temp){
-}
 
 int main() {
-    ds18b20::sensor<PB3> thermo;
+    ds18b20::sensor thermo{avr::io::pb4};
 
-    while(true)
+    while(true) 
         if(auto temp = thermo.read()) {
             if(temp.has_value())
-                do_something(temp.value());
+                auto v = temp.value();
         }
 }

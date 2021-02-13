@@ -4,8 +4,8 @@
 
 namespace ds18b20::commands {
 
-template<bool InternalPullup>
-inline void conversion(uint8_t pin) noexcept {
+template<bool InternalPullup, typename Pin>
+inline void conversion(Pin pin) noexcept {
     onewire::write<InternalPullup>(pin, 0x44 /*Conversion*/);
 }
 

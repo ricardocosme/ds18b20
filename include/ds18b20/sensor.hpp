@@ -10,6 +10,7 @@
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 #include "ds18b20/rom.hpp"
+#include <avr/io.hpp>
 #include <type_traits>
 #include <stdint.h>
 
@@ -18,7 +19,8 @@ namespace ds18b20 {
 /**
    Represents the sensor DS18B20
 
-   pin: number of the port pin that has the bus line.
+   pin: port pin that has the bus line. It should be a model of the
+        concept avr::io::Pin.
    rom_: Rom address of the sensor or SkipRom. Default is
          SkipRom. Take a look at 'rom.hpp' to know more.
    Policies: policies to optimize or enable some features. Take a look
@@ -27,25 +29,25 @@ namespace ds18b20 {
    Examples:
 
      1. Sensor with the bus line(data Input/Output [DQ]) connected to
-        the pin PB3 using SkipRom:
+        the pin avr::io::pb3 using SkipRom:
 
-       using thermo = sensor<PB3>;
+       using thermo = sensor<avr::io::pb3>;
 
      2. Sensor that has the Rom code {40, 251, 43, 31, 5, 0, 0, 139}:
 
-       using thermo = sensor<PB3, Rom<40, 251, 43, 31, 5, 0, 0, 139> >;
+       using thermo = sensor<avr::io::pb3, Rom<40, 251, 43, 31, 5, 0, 0, 139> >;
 
      3. Sensor configured with 9bits of resolution:
 
        using thermo = sensor<
-         PB3, 
+         avr::io::pb3, 
          Rom<40, 251, 43, 31, 5, 0, 0, 139>,
          resolution::_9bits_t>;
 
      4. Sensor configured with 10bits of resolution and decimal values enabled:
 
        using thermo = sensor<
-         PB3, 
+         avr::io::pb3, 
          Rom<40, 251, 43, 31, 5, 0, 0, 139>,
          resolution::_10bits_t,
          WithDecimal>;
@@ -53,7 +55,7 @@ namespace ds18b20 {
      5. Sensor using the internal pullup resistors from the MCU:
 
        using thermo = sensor<
-         PB3, 
+         avr::io::pb3, 
          Rom<40, 251, 43, 31, 5, 0, 0, 139>,
          resolution::_9bits_t,
          InternalPullup>;
@@ -79,7 +81,7 @@ namespace ds18b20 {
        https://datasheets.maximintegrated.com/en/ds/DS18B20.pdf
  */
 
-template<uint8_t pin,
+template<typename Pin,
          typename rom_ = SkipRom,
          typename... Policies>
 class sensor {
@@ -87,9 +89,9 @@ class sensor {
     static constexpr bool has_rom = !std::is_same<rom_, SkipRom>::value;
     uint8_t _state{0};
 public:
-    
-    /** number of the port pin that has the bus line */
-    static constexpr uint8_t Pin = pin;
+    Pin pin;
+
+    using pin_t = Pin;
     
     /** Rom code of the device or SkipRom */
     using Rom = rom_;
@@ -119,6 +121,8 @@ public:
         lazy_temperature<uint8_t>
         >;
 
+    sensor(Pin ppin) noexcept : pin(ppin) {}
+    
     /** Returns the Rom code of the sensor
 
         If sensor was instantiated with SkipRom, then the Rom code is
@@ -127,7 +131,7 @@ public:
         returned. Take a look at 'rom.hpp' to know more about the
         return type.
      */
-    static ::ds18b20::rom rom() noexcept {
+    ::ds18b20::rom rom() noexcept {
         if constexpr(has_rom) return {Rom::data};
         else return commands::read_rom<internal_pullup>(pin);
     }

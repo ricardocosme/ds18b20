@@ -7,8 +7,8 @@
 
 namespace ds18b20::detail {
 
-template<bool InternalPullup, typename Rom>
-inline void addr_device(uint8_t pin) noexcept {
+template<bool InternalPullup, typename Rom, typename Pin>
+inline void addr_device(Pin pin) noexcept {
     if constexpr(!std::is_same<Rom, SkipRom>::value)
         commands::match_rom<InternalPullup>(pin, Rom::data);
     else

@@ -1,10 +1,9 @@
 #pragma once
 
+#include <avr/io.hpp>
 #include <stdint.h>
 #include <util/atomic.h>
 #include <util/delay.h>
-
-#include "ds18b20/avr/gpio.hpp"
 
 namespace ds18b20::onewire {
 
@@ -17,8 +16,9 @@ namespace ds18b20::onewire {
   then releases the bus and goes into receive mode (RX). When the
   bus is released, the 5kpullup resistor pulls the 1-Wire bus high.
  */
-template<bool InternalPullup>
-inline void reset(uint8_t pin) noexcept {
+template<bool InternalPullup, typename Pin>
+inline void reset(Pin pin) noexcept {
+    using namespace avr::io;
     //pull the bus down for 480us
     out(pin);
     low(pin); 
@@ -39,7 +39,7 @@ inline void reset(uint8_t pin) noexcept {
   pulling the 1-Wire bus low for 60μs to 240μs.
 */ 
 template<bool InternalPullup>
-inline void presence(uint8_t pin) noexcept {
+inline void presence() noexcept {
     _delay_us(480);
 }
 
@@ -48,11 +48,11 @@ inline void presence(uint8_t pin) noexcept {
 
   pin: number of the port pin that has the bus line.
 */
-template<bool InternalPullup>
-inline void init(uint8_t pin) noexcept {
+template<bool InternalPullup, typename Pin>
+inline void init(Pin pin) noexcept {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         reset<InternalPullup>(pin);
-        presence<InternalPullup>(pin);
+        presence<InternalPullup>();
     }
 }
 

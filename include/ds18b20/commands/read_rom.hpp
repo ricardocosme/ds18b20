@@ -7,8 +7,8 @@
 
 namespace ds18b20::commands {
 
-template<bool InternalPullup>
-inline auto read_rom(uint8_t pin) noexcept {
+template<bool InternalPullup, typename Pin>
+inline auto read_rom(Pin pin) noexcept {
     onewire::init<InternalPullup>(pin);
     onewire::write<InternalPullup>(pin, 0x33); //Read ROM command
     ::ds18b20::rom ret;

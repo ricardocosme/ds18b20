@@ -4,9 +4,9 @@
 
 namespace ds18b20::commands {
 
-template<bool InternalPullup>
+template<bool InternalPullup, typename Pin>
 inline void write_scratchpad(
-    uint8_t pin,
+    Pin pin,
     uint8_t resolution,
     uint8_t th = 125,
     uint8_t tl = 0) noexcept

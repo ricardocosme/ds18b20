@@ -7,8 +7,8 @@
 
 namespace ds18b20::detail {
 
-template<bool InternalPullup>
-inline uint8_t read_scratchpad(uint8_t pin) noexcept {
+template<bool InternalPullup, typename Pin>
+inline uint8_t read_scratchpad(Pin pin) noexcept {
     uint8_t scratchpad[9];
     uint8_t invalid_crc = 0;
     for(uint8_t i = 0; i < 9; ++i) {
@@ -29,8 +29,8 @@ struct with_decimal_t {
     uint8_t decimal;
 };
 
-template<bool InternalPullup, uint8_t resolution, typename Ret>
-inline Ret read_scratchpad_with_decimal(uint8_t pin) noexcept {
+template<bool InternalPullup, uint8_t resolution, typename Ret, typename Pin>
+inline Ret read_scratchpad_with_decimal(Pin pin) noexcept {
     uint8_t scratchpad[9];
     uint8_t invalid_crc = 0;
     for(uint8_t i = 0; i < 9; ++i) {

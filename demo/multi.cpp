@@ -13,8 +13,8 @@ void do_something_outside(uint8_t temp){
 }
 int main() {
     using namespace ds18b20;
-    sensor<PB3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> inside;
-    sensor<PB3, Rom<40, 198, 8, 141, 5, 0, 0, 124>> outside;
+    sensor<avr::io::Pb3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> inside{avr::io::pb3};
+    sensor<avr::io::Pb3, Rom<40, 198, 8, 141, 5, 0, 0, 124>> outside{avr::io::pb3};
 
     while(true) {
         if(auto temp = inside.read())

@@ -10,8 +10,8 @@ void do_something_with_each_byte(uint8_t b){
 }
 
 int main() {
-    using thermo = ds18b20::sensor<PB3>;
-    auto rom = thermo::rom();
+    ds18b20::sensor thermo{avr::io::pb3};
+    auto rom = thermo.rom();
     for(auto b : rom)
         do_something_with_each_byte(b);
 }

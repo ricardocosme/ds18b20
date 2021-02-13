@@ -22,8 +22,8 @@ namespace ds18b20::resolution {
   | 12 bits    | 750ms                |            0.0625 |
 */
 template<typename Thermo>
-inline void set(bool save_to_eeprom = true) {
-    detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(Thermo::Pin);
+inline void set(Thermo& thermo, bool save_to_eeprom = true) {
+    detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(thermo.pin);
     uint8_t resolution;
     if constexpr(Thermo::resolution == 9)
         resolution = 0x1F;
@@ -34,16 +34,12 @@ inline void set(bool save_to_eeprom = true) {
     else if(Thermo::resolution == 12)
         resolution = 0x7F;
     else static_assert("Resolution is out of the range [9, 12]bits");
-    commands::write_scratchpad<Thermo::internal_pullup>(Thermo::Pin, resolution);
+    commands::write_scratchpad<Thermo::internal_pullup>(thermo.pin, resolution);
     
     if(save_to_eeprom) {
-        detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(Thermo::Pin);
-        commands::copy_scratchpad<Thermo::internal_pullup>(Thermo::Pin);
+        detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(thermo.pin);
+        commands::copy_scratchpad<Thermo::internal_pullup>(thermo.pin);
     }
 }
-
-template<typename Thermo>
-inline void set(Thermo, bool save_to_eeprom = true)
-{ set<Thermo>(save_to_eeprom); }
 
 }
