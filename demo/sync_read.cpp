@@ -12,7 +12,7 @@
 inline void do_something(uint8_t temp){}
 
 int main() {
-    ds18b20::sensor<avr::io::Pb3> thermo{avr::io::pb3};
+    ds18b20::sensor thermo{avr::io::pb3};
 
     while(true)
         if(auto temp = thermo.read())

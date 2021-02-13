@@ -18,9 +18,11 @@ public:
     using iterator = uint8_t*;
     using const_iterator = const uint8_t*;
 
-    constexpr rom() = default;
+    // constexpr
+    rom() = default;
     
-    constexpr rom(const uint8_t r[8]) {
+    // constexpr
+    rom(const uint8_t r[8]) {
         for(uint8_t i{}; i < 8; ++i)
             _data[i] = r[i];
     }

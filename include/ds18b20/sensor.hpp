@@ -98,13 +98,13 @@ public:
     using Rom = rom_;
 
     /** If there is support to decimals or fractions */
-    static constexpr bool with_decimal = detail::with_decimal<policies>();
+    static constexpr bool with_decimal = detail::has_with_decimal<policies>::value;
 
     /** Resolution used by the sensor */
-    static constexpr uint8_t resolution = detail::resolution<policies>();
+    static constexpr uint8_t resolution = detail::resolution<policies>::value;
 
     /** If there is support to internal pullup resistors */
-    static constexpr bool internal_pullup = detail::internal_pullup<policies>();
+    static constexpr bool internal_pullup = detail::has_internal_pullup<policies>::value;
 
     /** The return type of the method read(). It can be a lazy_temperature
         if only the whole number of the temperature is desired or a
@@ -122,6 +122,8 @@ public:
         lazy_temperature<uint8_t>
         >;
 
+    sensor() = default;
+    
     sensor(Pin ppin) noexcept : pin(ppin) {}
     
     /** Returns the Rom code of the sensor

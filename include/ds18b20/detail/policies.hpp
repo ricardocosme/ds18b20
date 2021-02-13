@@ -25,23 +25,27 @@ template<typename... Policies>
 constexpr auto policies(Policies... p)
 { return policies_impl(initial{}, p...); }
 
-template<typename Policies>
-constexpr auto internal_pullup() requires (Policies::internal_pullup)
-{ return true; }
+template<typename T, typename Enable = void>
+struct has_internal_pullup : std::false_type {};
 
-template<typename Policies>
-constexpr auto internal_pullup() { return false; }
+template<typename T>
+struct has_internal_pullup<T, std::void_t<decltype(T::internal_pullup)>> : std::true_type {};
 
-template<typename Policies>
-constexpr auto resolution() requires (!!Policies::resolution)
-{ return Policies::resolution; }
+template<typename T, typename Enable = void>
+struct resolution {
+    static constexpr uint8_t value{ds18b20::resolution::_12bits::resolution};
+};
 
-template<typename Policies>
-constexpr auto resolution() { return resolution::_12bits::resolution; }
+template<typename T>
+struct resolution<T, std::void_t<decltype(T::resolution)>> {
+    static constexpr uint8_t value{T::resolution};
+};
 
-template<typename Policies>
-constexpr auto with_decimal() requires (Policies::with_decimal)
-{ return true; }
+template<typename T, typename Enable = void>
+struct has_with_decimal : std::false_type {};
+
+template<typename T>
+struct has_with_decimal<T, std::void_t<decltype(T::with_decimal)>> : std::true_type {};
 
 template<typename Policies>
 constexpr auto with_decimal() { return false; }
