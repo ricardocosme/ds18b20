@@ -15,7 +15,7 @@ void do_something(uint8_t whole, Decimal decimal){
 int main() {
     using namespace ds18b20;
     
-    sensor<avr::io::Pb3, SkipRom, WithDecimal> thermo{avr::io::pb3};
+    sensor thermo{avr::io::pb3, skip_rom, with_decimal};
     
     while(true)
         if(auto temp = thermo.async_read()) {

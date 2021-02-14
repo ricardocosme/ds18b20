@@ -3,7 +3,7 @@
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 
-namespace ds18b20::commands {
+namespace ds18b20 { namespace commands {
 
 template<bool InternalPullup, typename Pin>
 inline void match_rom(Pin pin, const uint8_t rom[]) noexcept {
@@ -13,4 +13,4 @@ inline void match_rom(Pin pin, const uint8_t rom[]) noexcept {
         onewire::write<InternalPullup>(pin, rom[i]);
 }
 
-}
+}}

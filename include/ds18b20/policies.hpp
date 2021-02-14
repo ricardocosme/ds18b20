@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ds18b20/detail/global.hpp"
+
 #include <stdint.h>
 
 /** 
@@ -24,6 +26,14 @@ namespace ds18b20 {
 struct WithDecimal
 { constexpr static bool with_decimal{true}; };
 
+#if __cplusplus >= 201703L
+inline constexpr WithDecimal with_decimal;
+#else
+namespace {
+constexpr auto& with_decimal{detail::global<WithDecimal>::instance};
+}//anonymous namespace
+#endif
+
 /**
   It allows the usage of the internal pullup resistor from the MCU I/O
   Port
@@ -33,6 +43,14 @@ struct WithDecimal
   allow the usage of the internal pullup resistor of the bus pin.
 */
 struct InternalPullup { constexpr static bool internal_pullup{true}; };
+
+#if __cplusplus >= 201703L
+inline constexpr InternalPullup internal_pullup;
+#else
+namespace {
+constexpr auto& internal_pullup{detail::global<InternalPullup>::instance};
+}//anonymous namespace
+#endif
 
 /**
   Resolution
@@ -48,10 +66,24 @@ struct InternalPullup { constexpr static bool internal_pullup{true}; };
 */
 namespace resolution {
 
-struct _9bits { constexpr static uint8_t resolution = 9; };
-struct _10bits { constexpr static uint8_t resolution = 10; };
-struct _11bits { constexpr static uint8_t resolution = 11; };
-struct _12bits { constexpr static uint8_t resolution = 12; };
+struct _9bits_t { constexpr static uint8_t resolution = 9; };
+struct _10bits_t { constexpr static uint8_t resolution = 10; };
+struct _11bits_t { constexpr static uint8_t resolution = 11; };
+struct _12bits_t { constexpr static uint8_t resolution = 12; };
+
+#if __cplusplus >= 201703L
+inline constexpr _9bits_t _9bits;
+inline constexpr _10bits_t _10bits;
+inline constexpr _11bits_t _11bits;
+inline constexpr _12bits_t _12bits;
+#else
+namespace {
+constexpr auto& _9bits{detail::global<_9bits_t>::instance};
+constexpr auto& _10bits{detail::global<_10bits_t>::instance};
+constexpr auto& _11bits{detail::global<_11bits_t>::instance};
+constexpr auto& _12bits{detail::global<_12bits_t>::instance};
+}//anonymous namespace
+#endif
 
 } //namespace resolution
 

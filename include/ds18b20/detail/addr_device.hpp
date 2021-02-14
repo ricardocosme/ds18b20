@@ -5,14 +5,21 @@
 #include "ds18b20/rom.hpp"
 #include <type_traits>
 
-namespace ds18b20::detail {
+namespace ds18b20 { namespace detail {
+
+template<bool InternalPullup, typename Rom, typename Pin>
+inline void addr_device(Pin pin, std::true_type) noexcept {
+    commands::skip_rom<InternalPullup>(pin);
+}
+
+template<bool InternalPullup, typename Rom, typename Pin>
+inline void addr_device(Pin pin, std::false_type) noexcept {
+    commands::match_rom<InternalPullup>(pin, Rom::data);
+}
 
 template<bool InternalPullup, typename Rom, typename Pin>
 inline void addr_device(Pin pin) noexcept {
-    if constexpr(!std::is_same<Rom, SkipRom>::value)
-        commands::match_rom<InternalPullup>(pin, Rom::data);
-    else
-        commands::skip_rom<InternalPullup>(pin);
+    addr_device<InternalPullup, Rom>(pin, std::is_same<Rom, SkipRom>{});
 }
 
-}//namespace ds18b20::detail
+}}//namespace ds18b20::detail

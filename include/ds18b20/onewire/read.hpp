@@ -1,19 +1,31 @@
 #pragma once
 
 #include <avr/io.hpp>
-#include <util/atomic.h>
+#include <type_traits>
 #include <util/delay.h>
 
-namespace ds18b20::onewire {
+namespace ds18b20 { namespace onewire {
 
-template<bool InternalPullup, typename Pin>
-inline bool read_bit(Pin pin) noexcept {
+template<typename Pin>
+inline bool read_bit(Pin pin, std::true_type) noexcept {
     using namespace avr::io;
     out(pin);
-    if constexpr(InternalPullup) low(pin);
+    low(pin);
     _delay_us(1);
     in(pin);
-    if constexpr(InternalPullup) high(pin);
+    high(pin);
+    _delay_us(13);
+    bool ret = is_high(pin);
+    _delay_us(47); 
+    return ret;
+}
+
+template<typename Pin>
+inline bool read_bit(Pin pin, std::false_type) noexcept {
+    using namespace avr::io;
+    out(pin);
+    _delay_us(1);
+    in(pin);
     _delay_us(13);
     bool ret = is_high(pin);
     _delay_us(47); 
@@ -24,17 +36,19 @@ inline bool read_bit(Pin pin) noexcept {
   Read 1 byte (LSB first)
   
   InternalPullup: 'true' activates the support to the usage of the
-                   internal pullup resistor of the MCU.
-  pin: number of the port pin that has the bus line.
+                   internal pull-up resistor of the MCU.
+  pin: port pin that has the bus line.
+
+  precondition: the function should be called in a context that an
+  interrupt isn't possible.
 */
 template<bool InternalPullup, typename Pin>
 inline uint8_t read(Pin pin) noexcept {
     uint8_t byte{};
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        for(uint8_t i{8}, mask{0x01}; i > 0; --i, mask <<= 1)
-            if(read_bit<InternalPullup>(pin)) byte |= mask;
-    }
+    for(uint8_t i{8}, mask{0x01}; i > 0; --i, mask <<= 1)
+        if(read_bit(pin, std::integral_constant<bool, InternalPullup>{}))
+            byte |= mask;
     return byte;
 }
 
-}//namespace ds18b20::onewire
+}}//namespace ds18b20::onewire

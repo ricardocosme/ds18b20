@@ -1,17 +1,18 @@
 MCU=attiny85
 AVRDUDE_DEVICE=t85
 F_CPU=1000000
-STD_CXX=c++20
+STD_CXX=c++17
 OPTIMIZE=-Os
+AVR_IO_INC=../../../avrIO/include
 
 CXX=avr-g++
 CC=avr-gcc
 OBJCOPY=avr-objcopy
 OBJDUMP=avr-objdump
-INCLUDE=-I../include -I. -I../../avrIO/include
-CXXFLAGS=-std=$(STD_CXX) -g -mmcu=$(MCU) -Wall $(OPTIMIZE) -DF_CPU=$(F_CPU) $(INCLUDE)
+INCLUDE=-I../../include -I. -I$(AVR_IO_INC)
+CXXFLAGS=-std=$(STD_CXX) -g -mmcu=$(MCU) -Wall -Wno-unused-variable $(OPTIMIZE) -DF_CPU=$(F_CPU) $(INCLUDE)
 
-demos = simple single multi set_resolution read_rom sync_read with_decimal
+demos = async_read single multi set_resolution read_rom read with_decimal
 
 all: $(demos:%=%.elf) $(demos:%=%.lst) $(demos:%=%.s)
 

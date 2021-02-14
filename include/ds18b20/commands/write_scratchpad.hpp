@@ -2,7 +2,7 @@
 
 #include "ds18b20/onewire/write.hpp"
 
-namespace ds18b20::commands {
+namespace ds18b20 { namespace commands {
 
 template<bool InternalPullup, typename Pin>
 inline void write_scratchpad(
@@ -17,4 +17,4 @@ inline void write_scratchpad(
     onewire::write<InternalPullup>(pin, resolution);
 }
 
-}
+}}

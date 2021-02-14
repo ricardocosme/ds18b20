@@ -11,6 +11,7 @@
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 #include "ds18b20/rom.hpp"
+#include "ds18b20/detail/rom.hpp"
 #include <avr/io.hpp>
 #include <type_traits>
 #include <stdint.h>
@@ -20,9 +21,9 @@ namespace ds18b20 {
 /**
    Represents the sensor DS18B20
 
-   pin: port pin that has the bus line. It should be a model of the
+   Pin: port pin that has the bus line. It should be a model of the
         concept avr::io::Pin.
-   rom_: Rom address of the sensor or SkipRom. Default is
+   Rom: Rom address of the sensor or SkipRom. Default is
          SkipRom. Take a look at 'rom.hpp' to know more.
    Policies: policies to optimize or enable some features. Take a look
              at 'policies.hpp' to know more.
@@ -83,11 +84,10 @@ namespace ds18b20 {
  */
 
 template<typename Pin,
-         typename rom_ = SkipRom,
+         typename Rom = SkipRom,
          typename... Policies>
 class sensor {
     using policies = decltype(detail::policies(std::declval<Policies>()...));
-    static constexpr bool has_rom = !std::is_same<rom_, SkipRom>::value;
     uint8_t _state{0};
 public:
     Pin pin;
@@ -95,7 +95,7 @@ public:
     using pin_t = Pin;
     
     /** Rom code of the device or SkipRom */
-    using Rom = rom_;
+    using rom_t = Rom;
 
     /** If there is support to decimals or fractions */
     static constexpr bool with_decimal = detail::has_with_decimal<policies>::value;
@@ -106,25 +106,26 @@ public:
     /** If there is support to internal pullup resistors */
     static constexpr bool internal_pullup = detail::has_internal_pullup<policies>::value;
 
-    /** The return type of the method read(). It can be a lazy_temperature
+    /** The return type of the method `async_read()`. It can be a lazy_temperature
         if only the whole number of the temperature is desired or a
         lazy_temperature_with_decimal otherwise. */
     using value_type = 
-        std::conditional_t<
+        typename std::conditional<
             with_decimal,
             lazy_temperature_with_decimal<
-                std::conditional_t<
+                typename std::conditional<
                     resolution >= 11,
                     FP<uint16_t>,
                     FP<uint8_t>
-                >
+                    >::type
              >,
         lazy_temperature<uint8_t>
-        >;
+        >::type;
 
     sensor() = default;
     
-    sensor(Pin ppin) noexcept : pin(ppin) {}
+    explicit sensor(Pin ppin, Rom prom = Rom{}, Policies...) noexcept
+        : pin(ppin) {}
     
     /** Returns the Rom code of the sensor
 
@@ -134,12 +135,28 @@ public:
         returned. Take a look at 'rom.hpp' to know more about the
         return type.
      */
-    ::ds18b20::rom rom() noexcept {
-        if constexpr(has_rom) return {Rom::data};
-        else return commands::read_rom<internal_pullup>(pin);
-    }
+    ::ds18b20::rom rom() noexcept
+    { return detail::rom(*this); }
 
-    /** Asynchronous function to read the temperature
+    /** Synchronous(blocking) function to read the temperature
+
+        The returned object `opt` can contain a temperature value if
+        `has_value() == true` or an error otherwise:
+        
+          if(auto opt = read())
+            auto v = opt.value() //there is a valid temperature value
+     */
+    optional_temperature read() noexcept {
+        optional_temperature ret;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            detail::start_conversion<internal_pullup, Rom>(pin);
+            while(!onewire::read_bit(pin, std::integral_constant<bool, internal_pullup>{}));
+            ret = detail::read_scratchpad<optional_temperature>(*this);
+        }
+        return ret;
+    }
+    
+    /** Asynchronous(non-blocking) function to read the temperature
 
         This is a stackless coroutine that returns a lazy temperature
         value. 
@@ -160,17 +177,17 @@ public:
         An example using this function inside an event loop:
 
         while(true) //event loop
-          if(auto temp = thermo.read()) { //[1]
+          if(auto temp = thermo.async_read()) { //[1]
             if(temp.has_value()) //[2]
               do_something(temp.value()); //[3]
           }
        
         Explanation of the above example:
    
-        [1] The first call to 'thermo.read()' starts the conversion
+        [1] The first call to 'thermo.async_read()' starts the conversion
         process. When this function is resumed in the next iteration
         of the event loop, which means another call to
-        'thermo.read()', the function can returns a lazy value
+        'thermo.async_read()', the function can returns a lazy value
         representing an unfinished execution, which means that 'temp
         == false', or, it can rerturns a lazy value with the
         temperature value or an error.
@@ -182,33 +199,39 @@ public:
         temperature value.
      */
     value_type async_read() noexcept {
-        switch(_state) {
-        case 0: {
-            detail::start_conversion<internal_pullup, Rom>(pin);
-            _state = 1;
-            return {};
-        }
-        case 1: {
-            while(!onewire::read_bit<internal_pullup>(pin)) {
-                _state = 2;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+            switch(_state) {
+            case 0: {
+                detail::start_conversion<internal_pullup, Rom>(pin);
+                _state = 1;
                 return {};
-            case 2: { }
             }
-        }
-        default: {
-            _state = 0;
-            return detail::read_scratchpad<value_type>(*this);
-        }
+            case 1: {
+                while(!onewire::read_bit(pin, std::integral_constant<bool, internal_pullup>{})) {
+                    _state = 2;
+                    return {};
+                case 2: { }
+                }
+            }
+            default: {
+                _state = 0;
+                return detail::read_scratchpad<value_type>(*this);
+            }
+            }
         }
         return {};
     }
-    
-    optional_temperature read() noexcept {
-        detail::start_conversion<internal_pullup, Rom>(pin);
-        while(!onewire::read_bit<internal_pullup>(pin));
-        return detail::read_scratchpad<optional_temperature>(*this);
-    }
 };
+
+
+/** [C++11/14] This only make sense when the class template parameters
+ * can't be deduced by the constructor. */
+template<typename Pin,
+         typename Rom = SkipRom,
+         typename... Policies>
+inline sensor<Pin, Rom, Policies...>
+make_sensor(Pin pin, Rom rom = Rom{}, Policies... pols) noexcept
+{ return sensor<Pin, Rom, Policies...>{pin, rom, pols...}; }
 
 }
 

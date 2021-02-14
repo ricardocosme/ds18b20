@@ -2,10 +2,9 @@
 
 #include <avr/io.hpp>
 #include <stdint.h>
-#include <util/atomic.h>
 #include <util/delay.h>
 
-namespace ds18b20::onewire {
+namespace ds18b20 { namespace onewire {
 
 /** 
   Reset pulse
@@ -16,8 +15,8 @@ namespace ds18b20::onewire {
   then releases the bus and goes into receive mode (RX). When the
   bus is released, the 5kpullup resistor pulls the 1-Wire bus high.
  */
-template<bool InternalPullup, typename Pin>
-inline void reset(Pin pin) noexcept {
+template<typename Pin>
+inline void reset(Pin pin, bool InternalPullup) noexcept {
     using namespace avr::io;
     //pull the bus down for 480us
     out(pin);
@@ -26,16 +25,16 @@ inline void reset(Pin pin) noexcept {
     
     //release the bus
     in(pin);
-    if constexpr(InternalPullup) high(pin);
+    if(InternalPullup) high(pin);
 }
 
 /**
   Presence pulse
 
-  pin: number of the port pin that has the bus line.
+  pin: port pin that has the bus line.
 
-  When the DS18B20 detects the rising edge after a reset pulse and it
-  waits 15μs to 60μs. After then transmits a presence pulse by
+  When the DS18B20 detects the rising edge after a reset pulse, it
+  waits 15μs to 60μs and then transmits a presence pulse by
   pulling the 1-Wire bus low for 60μs to 240μs.
 */ 
 template<bool InternalPullup>
@@ -44,17 +43,19 @@ inline void presence() noexcept {
 }
 
 /**
-  Initialization: reset pulse followed by a presence pulse
+  Initialization sequence: reset pulse transmitted by the master
+  followed by a presence pulse(s) transmitted by the slave(s).
 
-  pin: number of the port pin that has the bus line.
+  pin: port pin that has the bus line.
+
+  precondition: the function should be called in a context that an
+  interrupt isn't possible.
 */
 template<bool InternalPullup, typename Pin>
 inline void init(Pin pin) noexcept {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        reset<InternalPullup>(pin);
-        presence<InternalPullup>();
-    }
+    reset(pin, InternalPullup);
+    presence<InternalPullup>();
 }
 
-}//namespace ds18b20::onewire
+}}//namespace ds18b20::onewire
 

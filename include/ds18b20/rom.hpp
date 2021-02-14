@@ -1,16 +1,29 @@
 #pragma once
 
+#include "ds18b20/detail/global.hpp"
+
 #include <stdint.h>
 
 namespace ds18b20 {
 
 struct SkipRom {};
+#if cplusplus >= 201703L
+inline constexpr SkipRom skip_rom;
+#else
+namespace {
+constexpr auto& skip_rom{detail::global<SkipRom>::instance};
+}//anonymous namespace
+#endif
 
 template<uint8_t B0, uint8_t B1, uint8_t B2, uint8_t B3,
          uint8_t B4, uint8_t B5, uint8_t B6, uint8_t B7>
 struct Rom {
-    constexpr static uint8_t data[] = {B0,B1,B2,B3,B4,B5,B6,B7};
+    static uint8_t data[];
 };
+
+template<uint8_t B0, uint8_t B1, uint8_t B2, uint8_t B3,
+         uint8_t B4, uint8_t B5, uint8_t B6, uint8_t B7>
+uint8_t Rom<B0,B1,B2,B3,B4,B5,B6,B7>::data[] = {B0,B1,B2,B3,B4,B5,B6,B7};
 
 class rom {
     uint8_t _data[8];

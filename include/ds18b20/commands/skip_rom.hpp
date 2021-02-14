@@ -3,7 +3,7 @@
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 
-namespace ds18b20::commands {
+namespace ds18b20 { namespace commands {
 
 template<bool InternalPullup, typename Pin>
 inline void skip_rom(Pin pin) noexcept {
@@ -11,4 +11,4 @@ inline void skip_rom(Pin pin) noexcept {
     onewire::write<InternalPullup>(pin, 0xCC /*Skip Rom*/);
 }
 
-}
+}}

@@ -16,15 +16,23 @@ inline void start_conversion(Pin pin) noexcept {
 }
 
 template<typename Ret, typename Sensor>
+inline Ret read_scratchpad(Sensor& sensor, std::true_type) noexcept {
+    return detail::read_scratchpad_with_decimal<
+        Sensor::internal_pullup, Sensor::resolution,
+        typename Sensor::value_type::value_type>(sensor.pin);
+}
+
+template<typename Ret, typename Sensor>
+inline Ret read_scratchpad(Sensor& sensor, std::false_type) noexcept {
+    return {detail::read_scratchpad<Sensor::internal_pullup>(sensor.pin)};
+}
+
+template<typename Ret, typename Sensor>
 inline Ret read_scratchpad(Sensor& sensor) noexcept {
-    detail::addr_device<Sensor::internal_pullup, typename Sensor::Rom>(sensor.pin);
+    detail::addr_device<Sensor::internal_pullup, typename Sensor::rom_t>(sensor.pin);
     commands::read_scratchpad<Sensor::internal_pullup>(sensor.pin);
-    if constexpr(Sensor::with_decimal)
-        return detail::read_scratchpad_with_decimal<
-            Sensor::internal_pullup, Sensor::resolution,
-            typename Sensor::value_type::value_type>(sensor.pin);
-    else
-        return {detail::read_scratchpad<Sensor::internal_pullup>(sensor.pin)};
+    return read_scratchpad<Ret>(
+        sensor, std::integral_constant<bool, Sensor::with_decimal>{});
 }
 
 }}

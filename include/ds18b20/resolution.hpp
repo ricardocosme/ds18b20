@@ -4,7 +4,7 @@
 #include "ds18b20/commands/write_scratchpad.hpp"
 #include "ds18b20/detail/addr_device.hpp"
 
-namespace ds18b20::resolution {
+namespace ds18b20 { namespace resolution {
 
 /**
   Defines the resolution of the sensoor
@@ -23,9 +23,9 @@ namespace ds18b20::resolution {
 */
 template<typename Thermo>
 inline void set(Thermo& thermo, bool save_to_eeprom = true) {
-    detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(thermo.pin);
+    detail::addr_device<Thermo::internal_pullup, typename Thermo::rom_t>(thermo.pin);
     uint8_t resolution;
-    if constexpr(Thermo::resolution == 9)
+    if(Thermo::resolution == 9)
         resolution = 0x1F;
     else if(Thermo::resolution == 10)
         resolution = 0x3F;
@@ -37,9 +37,9 @@ inline void set(Thermo& thermo, bool save_to_eeprom = true) {
     commands::write_scratchpad<Thermo::internal_pullup>(thermo.pin, resolution);
     
     if(save_to_eeprom) {
-        detail::addr_device<Thermo::internal_pullup, typename Thermo::Rom>(thermo.pin);
+        detail::addr_device<Thermo::internal_pullup, typename Thermo::rom_t>(thermo.pin);
         commands::copy_scratchpad<Thermo::internal_pullup>(thermo.pin);
     }
 }
 
-}
+}}

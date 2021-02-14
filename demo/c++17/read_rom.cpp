@@ -1,4 +1,4 @@
-#include <ds18b20/sensor.hpp>
+#include <ds18b20.hpp>
 
 /** This demo shows how to read the Rom value of the chip. 
     
