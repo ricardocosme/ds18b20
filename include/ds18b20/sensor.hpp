@@ -86,6 +86,9 @@ namespace ds18b20 {
 template<typename Pin,
          typename Rom = SkipRom,
          typename... Policies>
+#if __cplusplus > 201703L
+requires (avr::io::Pin<Pin>)
+#endif
 class sensor {
     using policies = decltype(detail::policies(std::declval<Policies>()...));
     uint8_t _state{0};
