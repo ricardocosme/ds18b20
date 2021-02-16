@@ -11,7 +11,7 @@
 
 
 int main() {
-    ds18b20::sensor thermo{avr::io::pb4};
+    ds18b20::sensor thermo{avr::io::pb3};
 
     while(true) 
         if(auto temp = thermo.async_read()) {

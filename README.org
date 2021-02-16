@@ -1,112 +1,106 @@
-C++20 driver to use the digital thermometer [[https://datasheets.maximintegrated.com/en/ds/DS18B20.pdf][ds18b20]] with AVR. The strong points of this work are the usage of [[#resumable-functions][coroutines]] to read the temperature and the [[#policies][compile-time operations to optimize the code size]].
+C++11/17/20 driver to use the digital thermometer [[file:datasheet.pdf][ds18b20]] with AVR8. This is a header-only library offering a high level of abstraction to manipulate the temperature sensor with the C++ [[https://en.cppreference.com/w/cpp/language/Zero-overhead_principle][zero-overhead principle]] in mind.
 
-/Note: if you're willing to use this library, be aware that it is a work under heavily development/
+The user should expect an easily readable code with a very small code size.
 
-** Simple [async]
-This example illustrates the reading of the temperature using the asynchronous approach. It's considered that there is only one device using the bus, it has the default resolution of 12 bits, and there is only interest in reading the whole part of the temperature value.
+** Synchronous reading
+This example illustrates the reading of the temperature using the synchronous or blocking approach. It's considered that there is only one device with 12 bits of resolution using the bus and the temperature value is represented by a whole number.
+
+#+BEGIN_SRC C++
+#include <ds18b20.hpp>
+
+int main() {
+    ds18b20::sensor thermo{avr::io::pb3};
+
+    while(true)
+        if(auto temp = thermo.read())
+            auto v = temp.value();
+}
+#+END_SRC
+[[file:demo/c++17/read.cpp][demo/c++17/read.cpp]]
+
+** Asynchronous reading
+
 #+BEGIN_SRC C++
 #include <ds18b20.hpp>
 
 void do_something(uint8_t temp){}
 
 int main() {
-    ds18b20::sensor<PB3> thermo;
+    ds18b20::sensor thermo{avr::io::pb3};
 
-    while(true)
-        if(auto temp = thermo.read()) {
+    while(true) 
+        if(auto temp = thermo.async_read()) {
             if(temp.has_value())
-                do_something(temp.value());
+                auto v = temp.value();
         }
 }
 #+END_SRC
-~326 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+[[file:demo/c++17/async_read.cpp][demo/c++17/async_read.cpp]]
 
-~read()~ is a coroutine that returns a lazy temperature value(~temp~) which has a ~done()~ method that returns ~false~ if the coroutine is running and ~true~ is it is completed. 
+~async_read()~ is a stackless coroutine that returns a lazy temperature value(~temp~) which has a ~done()~ method that returns ~false~ if the coroutine is running and ~true~ is it is completed. 
 
-** Simple [sync]
-If the asynchronous approach is not desirable, the temperature value can be obtained through a synchronous read operation(~sync_read()~). The caller blocks until the temperature value or an error are available.
+** Multiple devices on the same bus
+
 #+BEGIN_SRC C++
 #include <ds18b20.hpp>
-
-void do_something(uint8_t temp){}
-
-int main() {
-    ds18b20::sensor<PB3> thermo;
-
-    while(true)
-        if(auto temp = sync_read(thermo))
-            do_something(temp.value());
-}
-#+END_SRC
-~364 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
-
-** Multiple devices
-#+BEGIN_SRC C++
-#include <ds18b20.hpp>
-
-void do_something_inside(uint8_t temp){}
-void do_something_outside(uint8_t temp){}
 
 int main() {
     using namespace ds18b20;
-
-    sensor<PB3, Rom<40, 251, 43, 31, 5, 0, 0, 139>> inside;
-    sensor<PB3, Rom<40, 198, 8, 141, 5, 0, 0, 124>> outside;
+    sensor thermo_1{avr::io::pb3, Rom<40, 129, 145, 19, 10, 0, 0, 99>{}};
+    sensor thermo_2{avr::io::pb3, Rom<40,  60,  44, 20, 10, 0, 0, 11>{}};
 
     while(true) {
-        if(auto temp = inside.read())
+        if(auto temp = thermo_1.async_read())
             if(temp.has_value())
-                do_something_inside(temp.value());
-        if(auto temp = outside.read())
+                auto v1 = temp.value();
+        if(auto temp = thermo_2.async_read())
             if(temp.has_value())
-                do_something_outside(temp.value());
+                auto v2 = temp.value();
     }
 }
 #+END_SRC
-~612 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+[[file:demo/c++17/multi.cpp][demo/c++17/multi.cpp]]
 
 ** Temperature value with fractions
-The policy ~WithDecimal~ enables the driver to handle the decimal part of a temperature value. The resolution of the device determines how the driver should read and store the fraction. Below, the example uses the default policy ~resolution::_12bits~, which means that type ~Decimal~ is equal to ~uint16_t~ and the fraction has a resolution of ~0.0625~.
 #+BEGIN_SRC C++
-template<typename Decimal>
-void do_something(uint8_t whole, Decimal decimal){}
-
 int main() {
-    using namespace ds18b20;
-
-    sensor<PB3, SkipRom, WithDecimal> thermo;
-
+    using namespace ds18b20;    
+    sensor thermo{avr::io::pb3, skip_rom, with_decimal};
+    
     while(true)
-        if(auto temp = thermo.read()) {
-            if(temp.has_value())
-                do_something(temp.value(), temp.decimal());
+        if(auto temp = thermo.async_read()) {
+            if(temp.has_value()) {
+                auto whole = temp.value();
+                auto decimal = temp.decimal();
+            }
         }
 }
 #+END_SRC
-~580 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+[[file:demo/c++17/with_decimal.cpp][demo/c++17/with_decimal.cpp]]
+
+The library uses policies to enable optional features. The usage of policies helps to achieve the best memory footprint taking decisions at compile-time. In the end the user only pay for what he wants to use. One of the policies is responsible to enable the decimal part of a temperature value. This is what the parameter ~with_decimal~ do above when the object `thermo` is constructed. The integer type used to represent the decimal part is automatically choose based on the resolution used by the sensor, for example, the type ~uint16_t~ is picked up to 12bits resolution and the type ~uint8_t~ to 9bits resolution.
 
 ** Reading the Rom code
 #+BEGIN_SRC C++
-void do_something_with_each_byte(uint8_t b){
-}
+void do_something_with_each_byte(uint8_t b){}
 
 int main() {
-    using thermo = ds18b20::sensor<PB3>;
+    using thermo = ds18b20::sensor{avr::io::pb3};
     auto rom = thermo::rom();
     for(auto b : rom)
         do_something_with_each_byte(b);
 }
 #+END_SRC
-~158 bytes~ of code size compiled with ~avr-gcc 10.2.0~ and ~-Os -mmcu=attiny85~.
+[[file:demo/c++17/read_rom.cpp][demo/c++17/read_rom.cpp]]
 
 ** Features
-1. Asynchronous(coroutine) and synchronous ways to read the temperature.
+1. Synchronous and asynchronous(coroutine) approach to read the temperature.
 2. Support at compile-time to 9, 10, 11 e 12 bits of resolution.
 3. Optional support at compile-time to handle temperature values with fractions.
 4. Optional support at compile-time to allow the usage of the internal pullup resistor of the MCU I/O pin that represents the bus(DQ port).
-5. Setup of the resolution as a one shot call that saves the configuration in the EEPROM.
-6. Address of any device in the bus using the Skip Rom command.
-7. Address of specifics devices in the bus using the Rom code.
+5. Setup the resolution using only one call that saves the configuration in the EEPROM.
+6. Address any device in the bus using the Skip Rom command.
+7. Address specific devices in the bus using the Rom code.
 8. Reading of the Rom code.
 9. Support to multiple devices in the same bus(DQ port).
 
@@ -116,11 +110,39 @@ int main() {
 3. Alarm 
 4. Parasite power mode
 
-** Requirements
-1. ~avr-gcc 10.2~ with support to C++20(~-std=c++20~)
-2. ~avr-libc 2.0.0~
-3. ~<type_traits>~ [If there isn't a freestanging implementation of ~libstdc++~, [[https://github.com/ricardocosme/type_traits][this subset of the header can be used.]]
+*** How to use it?
+This is a header only library. It should be enough to add the path to the ~include~ directory as also the path to the include directory of each [[#dependencies][dependency]] to your project:
+1. Check the requirements section.
+2. Add the ~include~ directory to your include path as also the
+   path to the include directory related to each [[#dependencies][dependency]].
+3. Ensure that the macro ~F_CPU~ is defined. [1]
+4. Include the header ~ds18b200.hpp~ (~#include <ds18b200.hpp>~) to your
+   source and enjoy it!
 
-** Usage
-This is a header only library. The only thing that should be done is to include the header ~ds18b20.hpp~.
+*** How to build the demos?
+1. If you want to build the demos with support to C++11, then go to the directory ~demo/c++11~, if you want C++17 then go to ~demo/c++17~.
+2. Adjust at least the variables ~MCU~ and ~AVRDUDE_DEVICE~ at ~demo/common.mk~ to the appropriate values related to your microcontroller. /Note, the demos are already ready to ATtiny85./
+3. Check the value of the macro ~F_CPU~ at ~demo/common.mk~ to reflect the clock speed used by the microcontroller. The default value is ~1000000~, which means a clock of 1Mhz.
+4. ~make~
 
+*** Supported microcontrollers
+:PROPERTIES:
+:CUSTOM_ID: supported_microcontrollers
+:END:
+1. ATtiny13A
+2. ATtiny85
+3. ATmega328P
+
+*** Dependencies
+:PROPERTIES:
+:CUSTOM_ID: dependencies
+:END:
+1. [[https://github.com/ricardocosme/avrIO][avrIO]]
+2. [[https://github.com/ricardocosme/type_traits][<type_traits>]] /Note: This is not required if the freestanding implemenation of the libstdc++ is used./
+3. avr-libc 2.0
+
+*** Requirements
+1. ~avr-gcc~ with at least ~-std=c++11~. /Note: If C++14, C++17 or C++20 is used then some additional features can be offered./
+
+*** Contributions
+All type of contributions are welcome. If you like what you see and you have interest to help, don't hesitate to open a pull request, issue or contact me.
