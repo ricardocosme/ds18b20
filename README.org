@@ -1,6 +1,6 @@
 C++11/17/20 driver to use the digital thermometer [[file:datasheet.pdf][ds18b20]] with AVR8. This is a header-only library offering a high level of abstraction to manipulate the temperature sensor with the C++ [[https://en.cppreference.com/w/cpp/language/Zero-overhead_principle][zero-overhead principle]] in mind.
 
-The user should expect an easily readable code with a very small code size.
+The user should expect an expressive code with a very small memory footprint.
 
 ** Synchronous reading
 This example illustrates the reading of the temperature using the synchronous or blocking approach. It's considered that there is only one device with 12 bits of resolution using the bus and the temperature value is represented by a whole number.
