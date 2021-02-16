@@ -149,12 +149,23 @@ public:
           if(auto opt = read())
             auto v = opt.value() //there is a valid temperature value
      */
-    optional_temperature read() noexcept {
-        optional_temperature ret;
+    template<typename Ret = typename std::conditional<
+                 with_decimal,
+                 optional_temperature_with_decimal<
+                     typename std::conditional<
+                         resolution >= 11,
+                         FP<uint16_t>,
+                         FP<uint8_t>
+                         >::type
+                     >,
+                 optional_temperature<uint8_t>
+                 >::type>
+    Ret read() noexcept {
+        Ret ret;
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             detail::start_conversion<internal_pullup, Rom>(pin);
             while(!onewire::read_bit(pin, std::integral_constant<bool, internal_pullup>{}));
-            ret = detail::read_scratchpad<optional_temperature>(*this);
+            ret = detail::read_scratchpad<Ret>(*this);
         }
         return ret;
     }
