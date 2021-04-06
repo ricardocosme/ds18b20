@@ -5,15 +5,17 @@
 #include "ds18b20/commands/read_scratchpad.hpp"
 #include "ds18b20/detail/addr_device.hpp"
 #include "ds18b20/detail/policies.hpp"
-#include "ds18b20/detail/read_scratchpad.hpp"
 #include "ds18b20/detail/read.hpp"
+#include "ds18b20/detail/read_scratchpad.hpp"
+#include "ds18b20/detail/rom.hpp"
+#include "ds18b20/detail/type_traits/conditional.hpp"
+#include "ds18b20/detail/type_traits/declval.hpp"
+#include "ds18b20/detail/type_traits/integral_constant.hpp"
 #include "ds18b20/lazy_temperature.hpp"
 #include "ds18b20/onewire/init.hpp"
 #include "ds18b20/onewire/write.hpp"
 #include "ds18b20/rom.hpp"
-#include "ds18b20/detail/rom.hpp"
 #include <avr/io.hpp>
-#include <type_traits>
 #include <stdint.h>
 
 namespace ds18b20 {
@@ -90,7 +92,7 @@ template<typename Pin,
 requires (avr::io::Pin<Pin>)
 #endif
 class sensor {
-    using policies = decltype(detail::policies(std::declval<Policies>()...));
+    using policies = decltype(detail::policies(detail::declval<Policies>()...));
     uint8_t _state{0};
 public:
     Pin pin;
@@ -113,10 +115,10 @@ public:
         if only the whole number of the temperature is desired or a
         lazy_temperature_with_decimal otherwise. */
     using value_type = 
-        typename std::conditional<
+        typename detail::conditional<
             with_decimal,
             lazy_temperature_with_decimal<
-                typename std::conditional<
+                typename detail::conditional<
                     resolution >= 11,
                     FP<uint16_t>,
                     FP<uint8_t>
@@ -149,10 +151,10 @@ public:
           if(auto opt = read())
             auto v = opt.value() //there is a valid temperature value
      */
-    template<typename Ret = typename std::conditional<
+    template<typename Ret = typename detail::conditional<
                  with_decimal,
                  optional_temperature_with_decimal<
-                     typename std::conditional<
+                     typename detail::conditional<
                          resolution >= 11,
                          FP<uint16_t>,
                          FP<uint8_t>
@@ -164,7 +166,7 @@ public:
         Ret ret;
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
             detail::start_conversion<internal_pullup, Rom>(pin);
-            while(!onewire::read_bit(pin, std::integral_constant<bool, internal_pullup>{}));
+            while(!onewire::read_bit(pin, detail::integral_constant<bool, internal_pullup>{}));
             ret = detail::read_scratchpad<Ret>(*this);
         }
         return ret;
@@ -221,7 +223,7 @@ public:
                 return {};
             }
             case 1: {
-                while(!onewire::read_bit(pin, std::integral_constant<bool, internal_pullup>{})) {
+                while(!onewire::read_bit(pin, detail::integral_constant<bool, internal_pullup>{})) {
                     _state = 2;
                     return {};
                 case 2: { }

@@ -138,8 +138,7 @@ This is a header only library. It should be enough to add the path to the ~inclu
 :CUSTOM_ID: dependencies
 :END:
 1. [[https://github.com/ricardocosme/avrIO][avrIO]]
-2. [[https://github.com/ricardocosme/type_traits][<type_traits>]] /Note: This is not required if the freestanding implemenation of the libstdc++ is used./
-3. avr-libc 2.0
+2. avr-libc 2.0
 
 *** Requirements
 1. ~avr-gcc~ with at least ~-std=c++11~. /Note: If C++14, C++17 or C++20 is used then some additional features can be offered./

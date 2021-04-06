@@ -1,10 +1,9 @@
 #pragma once
 
-#include "ds18b20/policies.hpp"
 #include "ds18b20/detail/macros.hpp"
+#include "ds18b20/detail/type_traits/is_same.hpp"
 #include "ds18b20/detail/void_t.hpp"
-
-#include <type_traits>
+#include "ds18b20/policies.hpp"
 
 namespace ds18b20 { namespace detail {
 
@@ -34,10 +33,10 @@ DS18B20_DECLTYPE_AUTO_RETURN
 ( policies_impl(initial{}, p...) )
 
 template<typename T, typename Enable = void>
-struct has_internal_pullup : std::false_type {};
+struct has_internal_pullup : false_type {};
 
 template<typename T>
-struct has_internal_pullup<T, void_t<decltype(T::internal_pullup)>> : std::true_type {};
+struct has_internal_pullup<T, void_t<decltype(T::internal_pullup)>> : true_type {};
 
 template<typename T, typename Enable = void>
 struct resolution {
@@ -50,9 +49,9 @@ struct resolution<T, void_t<decltype(T::resolution)>> {
 };
 
 template<typename T, typename Enable = void>
-struct has_with_decimal : std::false_type {};
+struct has_with_decimal : false_type {};
 
 template<typename T>
-struct has_with_decimal<T, void_t<decltype(T::with_decimal)>> : std::true_type {};
+struct has_with_decimal<T, void_t<decltype(T::with_decimal)>> : true_type {};
 
 }}

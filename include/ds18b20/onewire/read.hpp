@@ -1,13 +1,14 @@
 #pragma once
 
+#include "ds18b20/detail/type_traits/integral_constant.hpp"
+
 #include <avr/io.hpp>
-#include <type_traits>
 #include <util/delay.h>
 
 namespace ds18b20 { namespace onewire {
 
 template<typename Pin>
-inline bool read_bit(Pin pin, std::true_type) noexcept {
+inline bool read_bit(Pin pin, detail::true_type) noexcept {
     using namespace avr::io;
     out(pin);
     low(pin);
@@ -21,7 +22,7 @@ inline bool read_bit(Pin pin, std::true_type) noexcept {
 }
 
 template<typename Pin>
-inline bool read_bit(Pin pin, std::false_type) noexcept {
+inline bool read_bit(Pin pin, detail::false_type) noexcept {
     using namespace avr::io;
     out(pin);
     _delay_us(1);
@@ -46,7 +47,7 @@ template<bool InternalPullup, typename Pin>
 inline uint8_t read(Pin pin) noexcept {
     uint8_t byte{};
     for(uint8_t i{8}, mask{0x01}; i > 0; --i, mask <<= 1)
-        if(read_bit(pin, std::integral_constant<bool, InternalPullup>{}))
+        if(read_bit(pin, detail::integral_constant<bool, InternalPullup>{}))
             byte |= mask;
     return byte;
 }
